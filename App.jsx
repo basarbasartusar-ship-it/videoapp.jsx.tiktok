@@ -1,0 +1,301 @@
+import { useState, useRef, useEffect, useCallback } from "react";
+
+// ─── ICONS ─────────────────────────────────────────────────────
+const IC = {
+  Home: ({ a }) => <svg width="24" height="24" fill={a?"white":"none"} stroke={a?"white":"#777"} strokeWidth="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+  Friends: ({ a }) => <svg width="24" height="24" fill="none" stroke={a?"white":"#777"} strokeWidth="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>,
+  Inbox: ({ a, n }) => <div style={{position:"relative"}}><svg width="24" height="24" fill="none" stroke={a?"white":"#777"} strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>{n>0&&<span style={{position:"absolute",top:-4,right:-6,background:"#fe2c55",color:"white",fontSize:9,fontWeight:700,minWidth:15,height:15,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px"}}>{n}</span>}</div>,
+  Profile: ({ a }) => <svg width="24" height="24" fill="none" stroke={a?"white":"#777"} strokeWidth="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  Heart: ({ f }) => <svg width="28" height="28" fill={f?"#fe2c55":"white"} viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>,
+  Comment: () => <svg width="28" height="28" fill="white" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>,
+  Share: () => <svg width="26" height="26" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>,
+  Back: () => <svg width="22" height="22" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>,
+  Send: () => <svg width="18" height="18" fill="white" viewBox="0 0 24 24"><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
+  Edit: () => <svg width="16" height="16" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+  Camera: () => <svg width="20" height="20" fill="none" stroke="#555" strokeWidth="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>,
+  Search: ({ a }) => <svg width="24" height="24" fill="none" stroke={a?"white":"#777"} strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+  Plus: () => <svg width="22" height="22" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  Check: () => <svg width="16" height="16" fill="none" stroke="#00e5ff" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>,
+  Upload: () => <svg width="28" height="28" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>,
+  Video: () => <svg width="24" height="24" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>,
+  Close: () => <svg width="22" height="22" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+};
+
+const AVATARS = ["🐯","🦊","🐺","🦁","🐻","🐼","🐨","🦅","🐉","🌟","⚡","🔥","🌊","🌸","🍀","🎭","💎","🎸","🚀","🎯"];
+const BG_GRADIENTS = [
+  "from-purple-900 via-indigo-900 to-black",
+  "from-rose-900 via-pink-900 to-black",
+  "from-green-900 via-emerald-900 to-black",
+  "from-yellow-900 via-amber-900 to-black",
+  "from-blue-900 via-cyan-900 to-black",
+  "from-red-900 via-orange-900 to-black",
+];
+const VID_EMOJIS = ["🎵","🎬","🌟","🔥","💫","🎭","🌊","⚡","🎮","🌺","😎","🤩"];
+
+function fmtTime(ts) {
+  if (!ts) return "";
+  const d = new Date(ts), now = new Date();
+  const diff = (now - d) / 1000;
+  if (diff < 60) return "এখনই";
+  if (diff < 3600) return Math.floor(diff/60) + "m আগে";
+  if (diff < 86400) return Math.floor(diff/3600) + "h আগে";
+  return d.toLocaleDateString("bn-BD");
+}
+
+// ─── STORAGE HELPERS ──────────────────────────────────────────
+async function sget(key, shared=false) {
+  try { const r = await window.storage.get(key, shared); return r ? JSON.parse(r.value) : null; } catch { return null; }
+}
+async function sset(key, val, shared=false) {
+  try { await window.storage.set(key, JSON.stringify(val), shared); return true; } catch { return false; }
+}
+async function slist(prefix, shared=false) {
+  try { const r = await window.storage.list(prefix, shared); return r?.keys || []; } catch { return []; }
+}
+
+// ─── AUTH SCREEN ──────────────────────────────────────────────
+function AuthScreen({ onLogin }) {
+  const [mode, setMode] = useState("welcome");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [avatar, setAvatar] = useState(AVATARS[0]);
+  const [bio, setBio] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const doLogin = async () => {
+    if (!username.trim() || !password.trim()) { setError("সব ফিল্ড পূরণ করুন"); return; }
+    setLoading(true); setError("");
+    const user = await sget("user:" + username.toLowerCase().trim(), true);
+    if (!user) { setError("অ্যাকাউন্ট পাওয়া যায়নি"); setLoading(false); return; }
+    if (user.password !== password) { setError("পাসওয়ার্ড ভুল"); setLoading(false); return; }
+    await sset("session", { uid: user.uid, username: user.username }, false);
+    onLogin(user);
+    setLoading(false);
+  };
+
+  const doSignup = async () => {
+    if (!username.trim() || !password.trim() || !displayName.trim()) { setError("সব ফিল্ড পূরণ করুন"); return; }
+    if (username.length < 3) { setError("ইউজারনেম কমপক্ষে ৩ অক্ষর"); return; }
+    if (password.length < 4) { setError("পাসওয়ার্ড কমপক্ষে ৪ অক্ষর"); return; }
+    setLoading(true); setError("");
+    const existing = await sget("user:" + username.toLowerCase().trim(), true);
+    if (existing) { setError("এই ইউজারনেম আগেই নেওয়া হয়েছে"); setLoading(false); return; }
+    const uid = "u_" + Date.now() + "_" + Math.random().toString(36).slice(2,7);
+    const user = { uid, username: username.toLowerCase().trim(), displayName: displayName.trim(), password, avatar, bio, followers: 0, following: 0, likes: 0, createdAt: Date.now() };
+    await sset("user:" + user.username, user, true);
+    await sset("session", { uid, username: user.username }, false);
+    onLogin(user);
+    setLoading(false);
+  };
+
+  const inp = (placeholder, value, onChange, type="text", emoji="") => (
+    <div style={{position:"relative", marginBottom:12}}>
+      {emoji && <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",fontSize:16}}>{emoji}</span>}
+      <input type={type} placeholder={placeholder} value={value} onChange={e=>onChange(e.target.value)}
+        style={{width:"100%",background:"#1a1a1a",border:"1px solid #2a2a2a",borderRadius:12,color:"white",padding:`12px ${emoji?"40px":"14px"} 12px ${emoji?"40px":"14px"}`,fontSize:15,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+    </div>
+  );
+
+  if (mode === "welcome") return (
+    <div style={{height:"100vh",background:"#000",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"0 28px"}}>
+      <div style={{fontSize:72,marginBottom:16}}>🎬</div>
+      <h1 style={{color:"white",fontSize:28,fontWeight:800,letterSpacing:-1,marginBottom:6}}>VideoApp</h1>
+      <p style={{color:"#666",fontSize:14,marginBottom:40,textAlign:"center"}}>ভিডিও শেয়ার করুন, বন্ধু বানান</p>
+      <button onClick={()=>setMode("signup")} style={{width:"100%",background:"linear-gradient(135deg,#fe2c55,#ff6b6b)",color:"white",fontWeight:700,fontSize:16,padding:"14px",borderRadius:14,border:"none",cursor:"pointer",marginBottom:12}}>নতুন অ্যাকাউন্ট তৈরি করুন</button>
+      <button onClick={()=>setMode("login")} style={{width:"100%",background:"#1a1a1a",color:"white",fontWeight:600,fontSize:16,padding:"14px",borderRadius:14,border:"1px solid #333",cursor:"pointer"}}>লগইন করুন</button>
+    </div>
+  );
+
+  if (mode === "login") return (
+    <div style={{height:"100vh",background:"#000",display:"flex",flexDirection:"column",padding:"60px 24px 0"}}>
+      <button onClick={()=>{setMode("welcome");setError("");}} style={{background:"none",border:"none",cursor:"pointer",alignSelf:"flex-start",marginBottom:24}}><IC.Back/></button>
+      <h2 style={{color:"white",fontSize:24,fontWeight:800,marginBottom:4}}>স্বাগতম 👋</h2>
+      <p style={{color:"#666",fontSize:14,marginBottom:28}}>আপনার অ্যাকাউন্টে লগইন করুন</p>
+      {inp("ইউজারনেম", username, setUsername, "text", "👤")}
+      {inp("পাসওয়ার্ড", password, setPassword, "password", "🔒")}
+      {error && <p style={{color:"#fe2c55",fontSize:13,marginBottom:12}}>{error}</p>}
+      <button onClick={doLogin} disabled={loading} style={{width:"100%",background:"linear-gradient(135deg,#fe2c55,#ff6b6b)",color:"white",fontWeight:700,fontSize:16,padding:"14px",borderRadius:14,border:"none",cursor:"pointer",marginTop:8,opacity:loading?0.7:1}}>
+        {loading ? "লোড হচ্ছে..." : "লগইন করুন"}
+      </button>
+      <p style={{color:"#666",fontSize:13,textAlign:"center",marginTop:20}}>অ্যাকাউন্ট নেই? <button onClick={()=>{setMode("signup");setError("");}} style={{background:"none",border:"none",color:"#fe2c55",cursor:"pointer",fontSize:13,fontWeight:600}}>সাইনআপ করুন</button></p>
+    </div>
+  );
+
+  return (
+    <div style={{height:"100vh",background:"#000",overflowY:"auto",padding:"50px 24px 40px"}}>
+      <button onClick={()=>{setMode("welcome");setError("");}} style={{background:"none",border:"none",cursor:"pointer",marginBottom:20}}><IC.Back/></button>
+      <h2 style={{color:"white",fontSize:24,fontWeight:800,marginBottom:4}}>প্রোফাইল তৈরি করুন</h2>
+      <p style={{color:"#666",fontSize:14,marginBottom:24}}>আপনার তথ্য দিন</p>
+      <p style={{color:"#aaa",fontSize:13,marginBottom:10}}>আপনার আইকন বেছে নিন</p>
+      <div style={{display:"flex",flexWrap:"wrap",gap:10,marginBottom:20}}>
+        {AVATARS.map(a=>(
+          <button key={a} onClick={()=>setAvatar(a)} style={{width:44,height:44,borderRadius:12,background:avatar===a?"#222":"#111",border:avatar===a?"2px solid #fe2c55":"2px solid transparent",fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"}}>
+            {a}
+          </button>
+        ))}
+      </div>
+      {inp("ডিসপ্লে নেম (যেমন: Mahedi)", displayName, setDisplayName, "text", "✨")}
+      {inp("ইউজারনেম (যেমন: mahedi_123)", username, setUsername, "text", "@")}
+      {inp("পাসওয়ার্ড (কমপক্ষে ৪ অক্ষর)", password, setPassword, "password", "🔒")}
+      <div style={{position:"relative",marginBottom:12}}>
+        <textarea placeholder="বায়ো লিখুন (ঐচ্ছিক)..." value={bio} onChange={e=>setBio(e.target.value)} rows={2}
+          style={{width:"100%",background:"#1a1a1a",border:"1px solid #2a2a2a",borderRadius:12,color:"white",padding:"12px 14px",fontSize:15,outline:"none",resize:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+      </div>
+      {error && <p style={{color:"#fe2c55",fontSize:13,marginBottom:12}}>{error}</p>}
+      <button onClick={doSignup} disabled={loading} style={{width:"100%",background:"linear-gradient(135deg,#fe2c55,#ff6b6b)",color:"white",fontWeight:700,fontSize:16,padding:"14px",borderRadius:14,border:"none",cursor:"pointer",opacity:loading?0.7:1}}>
+        {loading ? "তৈরি হচ্ছে..." : "অ্যাকাউন্ট তৈরি করুন ✓"}
+      </button>
+      <p style={{color:"#666",fontSize:13,textAlign:"center",marginTop:16}}>আগেই অ্যাকাউন্ট আছে? <button onClick={()=>{setMode("login");setError("");}} style={{background:"none",border:"none",color:"#fe2c55",cursor:"pointer",fontSize:13,fontWeight:600}}>লগইন করুন</button></p>
+    </div>
+  );
+}
+
+// ─── UPLOAD MODAL ─────────────────────────────────────────────
+function UploadModal({ currentUser, onClose, onUploaded }) {
+  const [caption, setCaption] = useState("");
+  const [selectedEmoji, setSelectedEmoji] = useState(VID_EMOJIS[0]);
+  const [selectedBg, setSelectedBg] = useState(BG_GRADIENTS[0]);
+  const [videoFile, setVideoFile] = useState(null);
+  const [videoPreview, setVideoPreview] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [step, setStep] = useState("pick"); // pick | details
+  const fileRef = useRef();
+
+  const handleFile = (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    if (!f.type.startsWith("video/")) { alert("শুধু ভিডিও ফাইল সাপোর্টেড"); return; }
+    if (f.size > 50 * 1024 * 1024) { alert("ভিডিও সাইজ সর্বোচ্চ ৫০MB"); return; }
+    setVideoFile(f);
+    const url = URL.createObjectURL(f);
+    setVideoPreview(url);
+    setStep("details");
+  };
+
+  const doUpload = async () => {
+    if (!caption.trim()) { alert("ক্যাপশন দিন"); return; }
+    setUploading(true);
+    try {
+      const vid = {
+        id: "video:" + Date.now() + "_" + Math.random().toString(36).slice(2,7),
+        uid: currentUser.uid,
+        username: currentUser.username,
+        displayName: currentUser.displayName,
+        avatar: currentUser.avatar,
+        caption: caption.trim(),
+        emoji: selectedEmoji,
+        bg: selectedBg,
+        likes: 0,
+        comments: 0,
+        hasVideo: !!videoFile,
+        createdAt: Date.now(),
+      };
+      // Store video as base64 if provided
+      if (videoFile) {
+        const base64 = await new Promise((res, rej) => {
+          const reader = new FileReader();
+          reader.onload = () => res(reader.result);
+          reader.onerror = rej;
+          reader.readAsDataURL(videoFile);
+        });
+        vid.videoData = base64;
+      }
+      await sset(vid.id, vid, true);
+      onUploaded();
+      onClose();
+    } catch(e) {
+      alert("আপলোড ব্যর্থ হয়েছে");
+    }
+    setUploading(false);
+  };
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",zIndex:200,display:"flex",flexDirection:"column",overflowY:"auto"}}>
+      {/* Header */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 18px",borderBottom:"1px solid #1f1f1f",position:"sticky",top:0,background:"#0a0a0a",zIndex:10}}>
+        <button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><IC.Close/></button>
+        <span style={{color:"white",fontWeight:700,fontSize:16}}>নতুন ভিডিও</span>
+        <div style={{width:30}}/>
+      </div>
+
+      {step === "pick" ? (
+        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"0 24px",gap:20}}>
+          <div style={{width:110,height:110,borderRadius:"50%",background:"#1a1a1a",border:"2px dashed #333",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}} onClick={()=>fileRef.current?.click()}>
+            <IC.Upload/>
+          </div>
+          <div style={{textAlign:"center"}}>
+            <p style={{color:"white",fontWeight:600,fontSize:17,marginBottom:6}}>গ্যালারি থেকে ভিডিও বেছে নিন</p>
+            <p style={{color:"#555",fontSize:13}}>MP4, MOV সাপোর্টেড • সর্বোচ্চ ৫০MB</p>
+          </div>
+          <button onClick={()=>fileRef.current?.click()} style={{background:"linear-gradient(135deg,#fe2c55,#ff6b6b)",color:"white",fontWeight:700,fontSize:15,padding:"13px 32px",borderRadius:12,border:"none",cursor:"pointer"}}>
+            📁 ফাইল বেছে নিন
+          </button>
+          <input ref={fileRef} type="file" accept="video/*" onChange={handleFile} style={{display:"none"}}/>
+          {/* Skip to emoji post */}
+          <button onClick={()=>setStep("details")} style={{background:"none",border:"none",color:"#555",fontSize:13,cursor:"pointer",marginTop:8}}>
+            বা শুধু ইমোজি পোস্ট করুন →
+          </button>
+        </div>
+      ) : (
+        <div style={{padding:"20px 18px 40px",display:"flex",flexDirection:"column",gap:16}}>
+          {/* Preview */}
+          <div style={{borderRadius:14,overflow:"hidden",background:"#111",aspectRatio:"9/16",maxHeight:260,display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
+            {videoPreview ? (
+              <video src={videoPreview} style={{width:"100%",height:"100%",objectFit:"cover"}} controls muted autoPlay loop playsInline/>
+            ) : (
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
+                <span style={{fontSize:56}}>{selectedEmoji}</span>
+                <p style={{color:"#555",fontSize:12}}>ইমোজি প্রিভিউ</p>
+              </div>
+            )}
+            {!videoPreview && (
+              <button onClick={()=>fileRef.current?.click()} style={{position:"absolute",top:8,right:8,background:"rgba(0,0,0,0.6)",border:"1px solid #333",borderRadius:8,color:"#aaa",fontSize:11,padding:"5px 10px",cursor:"pointer"}}>
+                📁 ভিডিও যোগ করুন
+              </button>
+            )}
+          </div>
+          <input ref={fileRef} type="file" accept="video/*" onChange={handleFile} style={{display:"none"}}/>
+
+          {/* Caption */}
+          <div>
+            <p style={{color:"#aaa",fontSize:13,marginBottom:8}}>ক্যাপশন *</p>
+            <textarea value={caption} onChange={e=>setCaption(e.target.value)} placeholder="আপনার ভিডিও সম্পর্কে লিখুন..." rows={3}
+              style={{width:"100%",background:"#1a1a1a",border:"1px solid #2a2a2a",borderRadius:12,color:"white",padding:"12px",fontSize:14,outline:"none",resize:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+          </div>
+
+          {/* Emoji picker */}
+          {!videoPreview && (
+            <div>
+              <p style={{color:"#aaa",fontSize:13,marginBottom:8}}>ইমোজি থিম</p>
+              <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+                {VID_EMOJIS.map(e=>(
+                  <button key={e} onClick={()=>setSelectedEmoji(e)}
+                    style={{width:40,height:40,borderRadius:10,background:selectedEmoji===e?"#2a1a2a":"#111",border:selectedEmoji===e?"2px solid #fe2c55":"2px solid #222",fontSize:20,cursor:"pointer"}}>
+                    {e}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Background picker */}
+          {!videoPreview && (
+            <div>
+              <p style={{color:"#aaa",fontSize:13,marginBottom:8}}>ব্যাকগ্রাউন্ড</p>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {BG_GRADIENTS.map((bg,i)=>{
+                  const colors = [["#6d28d9","#312e81"],["#881337","#831843"],["#14532d","#064e3b"],["#713f12","#451a03"],["#1e3a5f","#164e63"],["#7f1d1d","#7c2d12"]];
+                  const [c1,c2] = colors[i]||["#333","#111"];
+                  return (
+                    <button key={bg} onClick={()=>setSelectedBg(bg)}
+                      style={{width:40,height:40,borderRadius:10,background:`linear-gradient(135deg,${c1},${c2})`,border:selectedBg===bg?"3px solid white":"3px solid transparent",cursor:"pointer",flexShrink:0}}/>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <button onClick={doUpload} disabled={uploading}
+            style={{background:"linear-gradient(135deg,#fe2c55,#ff6b6b)",color:"white"
