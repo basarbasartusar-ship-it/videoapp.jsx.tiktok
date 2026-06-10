@@ -1,4 +1,12 @@
-Create a React JSX artifact for a TikTok-like app called "VibeReel". Start with just the constants, helpers, and storage functions. Do not render anything yet — just define:
+import { useState } from "react"
+
+export default function App() {
+  return (
+    <div>
+      <h1>VideoApp</h1>
+    </div>
+  )
+}
 
 1. AVATARS array: ["🐯","🦊","🐺","🦁","🐻","🐼","🐨","🦅","🐉","🌟","⚡","🔥","🌊","🌸","🍀","🎭","💎","🎸","🚀","🎯"]
 2. MUSIC_LIST array: ["Original Sound","Lo-fi Chill","Trending Pop","Bollywood Hits","EDM Remix","Acoustic Vibes","Hip Hop Beat","Classical","Desi Trap","Romantic"]
